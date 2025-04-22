@@ -33,19 +33,20 @@ pub contract EasyPrivateVoting {
 
     #[private]
     fn validate_jwt(
-        data: [u8; 268],
+        //data: BoundedVec<u8, MAX_DATA_LENGTH>,
+        data: [u8; MAX_DATA_LENGTH],
+        //data: [u8; 268],
         base64_decode_offset: u32,
         pubkey_modulus_limbs: pub [u128; 18],
         redc_params_limbs: [u128; 18],
         signature_limbs: [u128; 18],
         expected_nonce: pub [u8; MAX_NONCE_LENGTH],
     ) {
-        let data_vec: BoundedVec<u8, MAX_DATA_LENGTH> = BoundedVec::from_array(data);
-        // let expected_nonce_vec: BoundedVec<u8, MAX_NONCE_LENGTH> =
-        //     BoundedVec::from_array(expected_nonce);
+        // Safety: padded zeroes mess up the jwt logic
+        let data_trimmed = unsafe { trim_zeros(data) };
 
         let jwt = JWT::init(
-            data_vec,
+            data_trimmed,
             base64_decode_offset,
             pubkey_modulus_limbs,
             redc_params_limbs,
@@ -84,5 +85,19 @@ pub contract EasyPrivateVoting {
     #[utility]
     unconstrained fn get_vote(candidate: Field) -> Field {
         storage.tally.at(candidate).read()
+    }
+
+    #[utility]
+    unconstrained fn trim_zeros(input: [u8; 512]) -> BoundedVec<u8, MAX_DATA_LENGTH> {
+        let mut vec: BoundedVec<u8, MAX_DATA_LENGTH> = BoundedVec::new();
+
+        let mut count = 0;
+        for i in 0..512 {
+            if input[i] != 0 {
+                count += 1;
+                vec.push(input[i]);
+            }
+        }
+        vec
     }
 }
