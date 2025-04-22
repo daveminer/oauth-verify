@@ -108,9 +108,7 @@ unconstrained fn validate_jwt_token() {
     ];
 
     env.impersonate(alice);
-    // EasyPrivateVoting::at(voting_contract_address)
-    //     .validate_jwt([0; 900], 0, [0; 18], [0; 18], [0; 18], [0; 32])
-    //     .call(&mut env.private());
+
     EasyPrivateVoting::at(voting_contract_address)
         .validate_jwt(
             data,
