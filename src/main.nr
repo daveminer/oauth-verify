@@ -1,5 +1,6 @@
 mod test;
 use dep::aztec::macros::aztec;
+//use jwt::JWT;
 
 #[aztec]
 pub contract EasyPrivateVoting {
@@ -9,6 +10,12 @@ pub contract EasyPrivateVoting {
     };
     use dep::aztec::prelude::{AztecAddress, Map, PublicImmutable, PublicMutable};
     use dep::aztec::protocol_types::traits::{Hash, ToField};
+    //use easy_private_state::EasyPrivateUint;
+    use jwt::JWT;
+
+    global MAX_DATA_LENGTH: u32 = 900;
+    //global MAX_CLAIM_LENGTH: u32 = 64;
+    global MAX_NONCE_LENGTH: u32 = 32; // we are verifying `nonce` claim
 
     #[storage]
     struct Storage<Context> {
@@ -16,6 +23,8 @@ pub contract EasyPrivateVoting {
         tally: Map<Field, PublicMutable<Field, Context>, Context>, // we will store candidate as key and number of votes as value
         vote_ended: PublicMutable<bool, Context>, // vote_ended is boolean
         active_at_block: PublicImmutable<u32, Context>, // when people can start voting
+        //used_nonces: [Field; 1000000], // array of used nonces
+        //nonces: Map<AztecAddress, EasyPrivateUint<Context>, Context>,
     }
 
     #[public]
@@ -25,6 +34,36 @@ pub contract EasyPrivateVoting {
         storage.admin.write(admin);
         storage.vote_ended.write(false);
         storage.active_at_block.initialize(context.block_number() as u32);
+        //storage.used_nonces.initialize([0; 1000000]);
+    }
+
+    #[private]
+    fn validate_jwt(
+        data: [u8; MAX_DATA_LENGTH],
+        base64_decode_offset: u32,
+        pubkey_modulus_limbs: pub [u128; 18],
+        redc_params_limbs: [u128; 18],
+        signature_limbs: [u128; 18],
+        expected_nonce: pub [u8; MAX_NONCE_LENGTH],
+    ) {
+        let data_vec: BoundedVec<u8, MAX_DATA_LENGTH> = BoundedVec::from_array(data);
+        let expected_nonce_vec: BoundedVec<u8, MAX_NONCE_LENGTH> =
+            BoundedVec::from_array(expected_nonce);
+
+        let jwt = JWT::init(
+            data_vec,
+            base64_decode_offset,
+            pubkey_modulus_limbs,
+            redc_params_limbs,
+            signature_limbs,
+        );
+
+        jwt.verify();
+
+        //let test_sub: BoundedVec<u8, 3> = BoundedVec::from_array([49, 50, 52]);
+        //jwt.assert_claim_string("sub".as_bytes(), test_sub);
+        //jwt.assert_claim_string("sub".as_bytes(), expected_sub);
+        //private_call.transfer(to, amount);
     }
 
     #[private]
