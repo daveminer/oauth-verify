@@ -28,8 +28,7 @@
     "@aztec/noir-contracts.js": "0.84.0",
     "@aztec/stdlib": "0.84.0",
     "@types/sshpk": "^1.17.4",
-    "noir-jwt": "^0.4.5",
-    "sshpk": "^1.18.0"
+    "noir-jwt": "^0.4.5"
   },
   "devDependencies": {
     "@types/jest": "^29.5.11",
