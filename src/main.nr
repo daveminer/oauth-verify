@@ -54,6 +54,11 @@ pub contract EasyPrivateVoting {
         );
 
         jwt.verify();
+
+        let claim_value: BoundedVec<u8, MAX_DATA_LENGTH> =
+            BoundedVec::from_array("foobar".as_bytes());
+
+        jwt.assert_claim_string("data".as_bytes(), claim_value);
     }
 
     #[private]
