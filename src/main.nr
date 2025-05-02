@@ -42,11 +42,14 @@ pub contract EasyPrivateVoting {
         signature_limbs: [u128; 18],
         expected_nonce: pub [u8; MAX_NONCE_LENGTH],
     ) {
-        // Safety: padded zeroes mess up the jwt logic
-        let data_trimmed = unsafe { trim_zeros(data) };
+        // Safety: count the number of non-zero bytes in the data
+        let len = unsafe { data_length(data) };
+
+        let mut vec: BoundedVec<u8, MAX_DATA_LENGTH> = BoundedVec::from_parts(data, len);
 
         let jwt = JWT::init(
-            data_trimmed,
+            //data_trimmed,
+            vec,
             base64_decode_offset,
             pubkey_modulus_limbs,
             redc_params_limbs,
@@ -93,16 +96,19 @@ pub contract EasyPrivateVoting {
     }
 
     #[utility]
-    unconstrained fn trim_zeros(input: [u8; 512]) -> BoundedVec<u8, MAX_DATA_LENGTH> {
-        let mut vec: BoundedVec<u8, MAX_DATA_LENGTH> = BoundedVec::new();
-
-        let mut count = 0;
-        for i in 0..512 {
-            if input[i] != 0 {
-                count += 1;
-                vec.push(input[i]);
+    unconstrained fn data_length(input: [u8; MAX_DATA_LENGTH]) -> u32 {
+        let mut length: u32 = 0;
+        for i in 0..MAX_DATA_LENGTH {
+            if input[i] == 0 {
+                length = i;
+                break;
             }
         }
-        vec
+
+        if length == 0 {
+            MAX_DATA_LENGTH
+        } else {
+            length
+        }
     }
 }
