@@ -1,11 +1,19 @@
 use crate::test::utils;
 use dep::aztec::oracle::{execution::get_block_number, storage::storage_read};
-use dep::aztec::protocol_types::storage::map::derive_storage_slot_in_map;
+use dep::aztec::protocol_types::{
+    abis::function_selector::FunctionSelector, address::AztecAddress,
+    storage::map::derive_storage_slot_in_map,
+};
+use aztec::protocol_types::traits::FromField;
 
 use crate::EasyPrivateVoting;
+use authwit::entrypoint::{app::AppPayload, fee::FeePayload, function_call::FunctionCall};
+
+global ACCOUNT_MAX_CALLS: u32 = 4;
+global MAX_FEE_FUNCTION_CALLS: u32 = 2;
 
 #[test]
-unconstrained fn validate_jwt_token() {
+unconstrained fn entrypoint() {
     let (env, voting_contract_address, _) = utils::setup();
     let alice = env.create_account(2);
 
@@ -96,8 +104,74 @@ unconstrained fn validate_jwt_token() {
 
     env.impersonate(alice);
 
+    let dummy_address: AztecAddress = AztecAddress::from_field(0.into());
+
+    // Create dummy function calls (replace with real calls as needed)
+    let app_function_calls: [FunctionCall; ACCOUNT_MAX_CALLS] = [
+        FunctionCall {
+            args_hash: 0, // Zero field for dummy call
+            function_selector: FunctionSelector::from_signature("entrypoint"), // Example selector
+            target_address: dummy_address,
+            is_public: false,
+            is_static: false,
+        },
+        FunctionCall {
+            args_hash: 0, // Zero field for dummy call
+            function_selector: FunctionSelector::from_signature("entrypoint"), // Example selector
+            target_address: dummy_address,
+            is_public: false,
+            is_static: false,
+        },
+        FunctionCall {
+            args_hash: 0, // Zero field for dummy call
+            function_selector: FunctionSelector::from_signature("entrypoint"), // Example selector
+            target_address: dummy_address,
+            is_public: false,
+            is_static: false,
+        },
+        FunctionCall {
+            args_hash: 0, // Zero field for dummy call
+            function_selector: FunctionSelector::from_signature("entrypoint"), // Example selector
+            target_address: dummy_address,
+            is_public: false,
+            is_static: false,
+        },
+    ];
+
+    let fee_function_calls: [FunctionCall; MAX_FEE_FUNCTION_CALLS] = [
+        FunctionCall {
+            args_hash: 0, // Zero field for dummy call
+            function_selector: FunctionSelector::from_signature("entrypoint"), // Example selector
+            target_address: dummy_address,
+            is_public: false,
+            is_static: false,
+        },
+        FunctionCall {
+            args_hash: 0, // Zero field for dummy call
+            function_selector: FunctionSelector::from_signature("entrypoint"), // Example selector
+            target_address: dummy_address,
+            is_public: false,
+            is_static: false,
+        },
+    ];
+    // Set a nonce value
+    let nonce: Field = 1;
+
+    // Construct AppPayload
+    let app_payload = AppPayload { function_calls: app_function_calls, nonce };
+
+    // Construct FeePayload
+    let fee_payload = FeePayload {
+        function_calls: fee_function_calls,
+        nonce,
+        is_fee_payer: true, // or false, depending on your test
+    };
+
     EasyPrivateVoting::at(voting_contract_address)
-        .validate_jwt(
+        .entrypoint(
+            app_payload,
+            fee_payload,
+            false,
             data,
             offset,
             pubkey_modulus_limbs,
