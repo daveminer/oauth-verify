@@ -15,7 +15,7 @@ pub contract EasyPrivateVoting {
     use dep::aztec::protocol_types::traits::{Hash, ToField};
     use jwt::JWT;
 
-    global MAX_DATA_LENGTH: u32 = 512;
+    global MAX_DATA_LENGTH: u32 = 1024;
     global MAX_NONCE_LENGTH: u32 = 32;
 
     #[storage]
