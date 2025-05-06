@@ -20,7 +20,11 @@
     "test:nr": "aztec test",
     "test-jwt": "node --loader ts-node/esm scripts/build-jwt.ts",
     "update": "aztec update --contract . && ./.github/scripts/update_contract.sh $(grep -oP 'tag\\s*=\\s*\"\\K[^\"]+' \"Nargo.toml\" | head -1) && yarn && yarn update-readme-version",
-    "update-readme-version": "node ./.github/scripts/update-readme-version.js"
+    "update-readme-version": "node ./.github/scripts/update-readme-version.js",
+    "server:install": "cd server && yarn install",
+    "server:build": "cd server && yarn build",
+    "server:start": "cd server && yarn start",
+    "server:dev": "cd server && yarn dev"
   },
   "dependencies": {
     "@aztec/accounts": "0.84.0",
