@@ -4,6 +4,7 @@ import { OAuth2Client } from "google-auth-library";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import crypto from "crypto";
+import cookieParser from "cookie-parser";
 
 dotenv.config();
 
@@ -11,8 +12,14 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 // Middleware
-app.use(cors());
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+  })
+);
 app.use(express.json());
+app.use(cookieParser());
 
 // Generate RSA key pair
 const { publicKey, privateKey } = crypto.generateKeyPairSync("rsa", {
@@ -71,6 +78,9 @@ app.get("/auth/google/callback", async (req: Request, res: Response) => {
       url: "https://www.googleapis.com/oauth2/v3/userinfo",
     });
 
+    console.log("USER INFO");
+    console.log(userInfo);
+
     // Generate JWT
     const token = jwt.sign(
       {
@@ -86,20 +96,51 @@ app.get("/auth/google/callback", async (req: Request, res: Response) => {
       }
     );
 
-    // Return both the JWT and the public key
-    res.json({
-      token,
-      publicKey: publicKey,
+    console.log("TOKEN");
+    console.log(token);
+
+    // Set secure HTTP-only cookie with the token
+    res.cookie("auth_token", token, {
+      secure: true,
+      sameSite: "lax",
+      maxAge: 3600000, // 1 hour in milliseconds
+      path: "/",
     });
+
+    // Set public key in a separate cookie (since it's public anyway)
+    res.cookie("public_key", publicKey, {
+      secure: true,
+      sameSite: "lax",
+      maxAge: 3600000,
+      path: "/",
+    });
+
+    // Redirect back to the Vite app
+    res.redirect("http://localhost:5173");
   } catch (error) {
     console.error("Error during authentication:", error);
-    res.status(500).json({ error: "Authentication failed" });
+    res.redirect("http://localhost:5173?error=Authentication failed");
   }
 });
 
 // Get public key endpoint
 app.get("/auth/public-key", (_req: Request, res: Response) => {
   res.json({ publicKey });
+});
+
+// Add a new endpoint to verify the token
+app.get("/auth/verify", (req: Request, res: Response) => {
+  const token = req.cookies.auth_token;
+  if (!token) {
+    return res.status(401).json({ error: "No token provided" });
+  }
+
+  try {
+    const decoded = jwt.verify(token, publicKey);
+    res.json({ user: decoded });
+  } catch (error) {
+    res.status(401).json({ error: "Invalid token" });
+  }
 });
 
 // Start server
