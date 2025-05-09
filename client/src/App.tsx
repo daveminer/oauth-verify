@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import "./App.css";
 import { generateInputs } from "noir-jwt";
+import { createPXEClient } from "@aztec/aztec.js";
 
 //const { generateInputs } = require("noir-jwt");
 
@@ -49,6 +50,8 @@ function App() {
   const [publicKey, setPublicKey] = useState<string>("");
   const [error, setError] = useState<string>("");
 
+  const PXE_URL = "http://localhost:8080";
+
   useEffect(() => {
     // Check if we're returning from OAuth
     const urlParams = new URLSearchParams(window.location.search);
@@ -85,6 +88,10 @@ function App() {
               console.log(await inputs);
 
               // Call contract
+
+              const pxe = await createPXEClient(PXE_URL);
+              const { l1ChainId } = await pxe.getNodeInfo();
+              console.log(`Connected to chain ${l1ChainId}`);
             }
           })
           .catch((err) => {
