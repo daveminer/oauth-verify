@@ -21,5 +21,5 @@
     "skipLibCheck": true,
     "jsx": "react-jsx"
   },
-  "include": ["src", "scripts/**/*", "src/**/*.json", "src/artifacts/*", "target/**/*"]
+  "include": ["contracts/oauth_verify/src", "scripts/**/*", "contracts/oauth_verify/src/**/*.json", "contracts/oauth_verify/src/artifacts/*", "target/**/*"]
 }

@@ -11,7 +11,7 @@
     "fees": "node --loader ts-node/esm scripts/fees.ts",
     "clean": "rm -rf ./src/artifacts ./target",
     "codegen": "aztec codegen target --outdir src/artifacts",
-    "compile": "${AZTEC_NARGO:-aztec-nargo} compile",
+    "compile:oauth-verify": "cd contracts/oauth_verify && ${AZTEC_NARGO:-aztec-nargo} compile",
     "deploy": "node --loader ts-node/esm scripts/deploy-contract.ts",
     "deploy-account": "node --loader ts-node/esm scripts/deploy-account.ts",
     "get-block": "node --loader ts-node/esm scripts/getBlock.ts",

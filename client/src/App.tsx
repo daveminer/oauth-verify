@@ -2,14 +2,20 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import "./App.css";
 import { generateInputs } from "noir-jwt";
-import { createPXEClient } from "@aztec/aztec.js";
+import {
+  Contract,
+  createPXEClient,
+  loadContractArtifact,
+} from "@aztec/aztec.js";
+import { getInitialTestAccountsWallets } from "@aztec/accounts/testing";
+import EasyPrivateVotingJson from "../../contracts/oauth_verify/target/easy_private_voting_contract-EasyPrivateVoting.json";
+//import { CounterContractArtifact } from "@aztec/noir-contracts.js/Counter";
 
-//const { generateInputs } = require("noir-jwt");
+const DEPLOY_CONTRACT = true;
 
-interface AuthResponse {
-  token: string;
-  publicKey: string;
-}
+const EasyPrivateVotingContract = loadContractArtifact(
+  EasyPrivateVotingJson as any
+);
 
 async function pemToJsonWebKey(pem: string): Promise<JsonWebKey> {
   // URL decode the PEM string first
@@ -53,56 +59,81 @@ function App() {
   const PXE_URL = "http://localhost:8080";
 
   useEffect(() => {
-    // Check if we're returning from OAuth
-    const urlParams = new URLSearchParams(window.location.search);
-    const error = urlParams.get("error");
+    const processFn = async () => {
+      // Check if we're returning from OAuth
+      const urlParams = new URLSearchParams(window.location.search);
+      const error = urlParams.get("error");
 
-    if (error) {
-      setError(error);
-    } else {
+      if (error) {
+        setError(error);
+        return;
+      }
+
       // Get the public key from cookie
       const publicKey = getCookie("public_key");
       console.log("PUBLIC KEY");
       console.log(publicKey);
-      if (publicKey) {
-        setPublicKey(publicKey);
-
-        // Convert PEM to JsonWebKey
-        pemToJsonWebKey(publicKey)
-          .then(async (jwk) => {
-            console.log("JWK");
-            console.log(jwk);
-            // Get the token from cookie
-            const token = getCookie("auth_token");
-            console.log("TOKEN");
-            console.log(token);
-
-            if (token) {
-              setToken(token);
-
-              const inputs = generateInputs({
-                jwt: token,
-                pubkey: jwk,
-                maxSignedDataLength: 1024,
-              });
-              console.log(await inputs);
-
-              // Call contract
-
-              const pxe = await createPXEClient(PXE_URL);
-              const { l1ChainId } = await pxe.getNodeInfo();
-              console.log(`Connected to chain ${l1ChainId}`);
-            }
-          })
-          .catch((err) => {
-            console.error("Error processing public key:", err);
-            setError("Failed to process public key");
-          });
-      } else {
+      if (!publicKey) {
         // If no public key cookie, get the auth URL
         fetchAuthUrl();
+        return;
       }
-    }
+
+      setPublicKey(publicKey);
+
+      let jwk: JsonWebKey;
+      try {
+        jwk = await pemToJsonWebKey(publicKey);
+      } catch (err) {
+        console.error("Error processing public key:", err);
+        setError("Failed to process public key");
+        return;
+      }
+
+      console.log("JWK");
+      console.log(jwk);
+      // Get the token from cookie
+      const token = getCookie("auth_token");
+      if (!token) {
+        setError("No auth_token found");
+        return;
+      }
+
+      setToken(token);
+
+      const inputs = generateInputs({
+        jwt: token,
+        pubkey: jwk,
+        maxSignedDataLength: 1024,
+      });
+      console.log(await inputs);
+
+      // Call contract
+
+      const pxe = await createPXEClient(PXE_URL);
+      const { l1ChainId } = await pxe.getNodeInfo();
+      console.log(`Connected to chain ${l1ChainId}`);
+
+      const [ownerWallet] = await getInitialTestAccountsWallets(pxe);
+      const ownerAddress = ownerWallet.getAddress();
+
+      if (DEPLOY_CONTRACT) {
+        const token = await Contract.deploy(
+          ownerWallet,
+          EasyPrivateVotingContract,
+          [ownerAddress]
+        )
+          .send()
+          .deployed();
+
+        console.log(`Token deployed at ${token.address.toString()}`);
+
+        //const addresses = { token: token.address.toString() };
+        //writeFileSync("addresses.json", JSON.stringify(addresses, null, 2));
+      }
+    };
+
+    processFn();
   }, []);
 
   // Helper function to get cookie value
